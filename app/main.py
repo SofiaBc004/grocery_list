@@ -1,10 +1,20 @@
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from .db import init_db
 from .models import ItemCreate, ItemUpdate, ItemRead
 from . import crud
 
 app = FastAPI(title="Grocery List API", version="1.0.0")
+
+# allow the frontend to call the API during development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # only for local development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def _startup():

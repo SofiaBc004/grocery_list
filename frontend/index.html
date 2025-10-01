@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery List App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f8f1e7; /* cappuccino cream */
+      color: #4b3832; /* dark brown text */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #fffaf6;
+      margin-top: 40px;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+      width: 450px;
+      position: relative;
+    }
+
+    h1 {
+      text-align: center;
+      color: #6f4e37; /* cappuccino brown */
+    }
+
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #d4c4b7;
+      font-size: 14px;
+    }
+
+    input {
+      width: calc(100% - 22px);
+      margin-bottom: 10px;
+    }
+
+    button {
+      background: #d9b08c; /* latte color */
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 5px;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #a97458; /* darker cappuccino */
+    }
+
+    .search-container {
+      margin: 15px 0;
+      padding: 10px;
+      background: #f8efe7;
+      border-radius: 10px;
+    }
+
+    .category-section {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #fdf5ef;
+    }
+
+    .category-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #6f4e37;
+      border-bottom: 1px solid #d9b08c;
+      padding-bottom: 5px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #fff;
+      margin: 8px 0;
+      padding: 12px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    li.purchased {
+      text-decoration: line-through;
+      color: #999;
+      background: #ece2d9;
+    }
+
+    .actions button {
+      margin-left: 5px;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .delete-btn {
+      background: #e27d60;
+    }
+
+    .delete-btn:hover {
+      background: #c94c28;
+    }
+
+    .toggle-btn {
+      background: #85c7de;
+    }
+
+    .toggle-btn:hover {
+      background: #509bb0;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>☕ Grocery List</h1>
+
+    <input id="itemName" type="text" placeholder="Item name">
+    <input id="itemQty" type="number" placeholder="Quantity">
+    <input id="itemCategory" type="text" placeholder="Category (e.g. fruit, dairy)">
+    <button onclick="addItem()">Add Item</button>
+
+    <div class="search-container">
+      <h2>🔎 Search</h2>
+      <input id="searchInput" type="text" placeholder="Search by name or ID">
+      <button onclick="searchItem()">Search</button>
+      <ul id="searchResult"></ul>
+    </div>
+
+    <h2>My List</h2>
+    <div id="categoriesContainer"></div>
+
+
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000/items";
+
+    async function fetchItems() {
+      const res = await fetch(API_URL);
+      const items = await res.json();
+
+      // group items by category
+      const grouped = {};
+      items.forEach(item => {
+        const cat = item.category || "Uncategorized";
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(item);
+      });
+
+      const container = document.getElementById("categoriesContainer");
+      container.innerHTML = "";
+
+      for (const category in grouped) {
+        const section = document.createElement("div");
+        section.className = "category-section";
+
+        const header = document.createElement("div");
+        header.className = "category-header";
+        header.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+
+        const ul = document.createElement("ul");
+
+        grouped[category].forEach(item => {
+          const li = document.createElement("li");
+          li.className = item.purchased ? "purchased" : "";
+
+          li.innerHTML = `
+            ${item.name} (${item.quantity})
+            <div class="actions">
+              <button class="toggle-btn" onclick="togglePurchased(${item.id})">
+                ${item.purchased ? "Unmark" : "Mark"}
+              </button>
+              <button class="delete-btn" onclick="deleteItem(${item.id})">Delete</button>
+            </div>
+          `;
+          ul.appendChild(li);
+        });
+
+        section.appendChild(header);
+        section.appendChild(ul);
+        container.appendChild(section);
+      }
+    }
+
+    async function addItem() {
+      const name = document.getElementById("itemName").value;
+      const quantity = document.getElementById("itemQty").value || 1;
+      const category = document.getElementById("itemCategory").value;
+
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, quantity: parseInt(quantity), category })
+      });
+
+      document.getElementById("itemName").value = "";
+      document.getElementById("itemQty").value = "";
+      document.getElementById("itemCategory").value = "";
+      fetchItems();
+    }
+
+    async function togglePurchased(id) {
+      await fetch(`${API_URL}/${id}/toggle`, { method: "PATCH" });
+      fetchItems();
+    }
+
+    async function deleteItem(id) {
+      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      fetchItems();
+    }
+
+    async function searchItem() {
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const resultsList = document.getElementById("searchResult");
+      resultsList.innerHTML = "";
+
+      const res = await fetch(API_URL);
+      const items = await res.json();
+      const results = items.filter(item => 
+        item.name.toLowerCase().includes(query) || item.id.toString() === query
+      );
+
+      if (results.length === 0) {
+        resultsList.innerHTML = "<li>No items found.</li>";
+      } else {
+        results.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = `${item.name} (${item.quantity}) - ${item.category}`;
+          resultsList.appendChild(li);
+        });
+      }
+    }
+
+    fetchItems();
+  </script>
+</body>
+</html>
