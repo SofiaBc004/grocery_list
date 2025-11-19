@@ -5,6 +5,7 @@ class ItemCreate(BaseModel):
     name: constr(strip_whitespace=True, min_length=1, max_length=80)
     quantity: conint(ge=1) = 1
     category: constr(max_length=40) = ""
+    purchased: bool = False
 
 class ItemUpdate(BaseModel):
     name: Optional[constr(strip_whitespace=True, min_length=1, max_length=80)] = None
