@@ -208,3 +208,8 @@ __marimo__/
 
 .DS_Store
 venv/
+
+
+grocery.db
+*.db
+*.sqlite

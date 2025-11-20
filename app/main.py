@@ -1,34 +1,47 @@
-from typing import Optional, List, Annotated
-from fastapi import FastAPI, HTTPException, Query
+from typing import Optional, List
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .db import init_db
 from .models import ItemCreate, ItemUpdate, ItemRead
 from . import crud
 from contextlib import asynccontextmanager
+from prometheus_fastapi_instrumentator import Instrumentator
 
+
+# LIFESPAN - only for initializing the database
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Run at startup
     init_db()
+    yield
 
-    yield  # Application runs here
-
-
+# FASTAPI APP
 app = FastAPI(
     title="Grocery List API",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# allow the frontend to call the API during development
+# PROMETHEUS INSTRUMENTATION 
+instrumentator = Instrumentator(
+    should_group_status_codes=False,
+    should_ignore_untemplated=True,
+    should_respect_env_var=False,
+    should_instrument_requests_inprogress=True,
+)
+
+instrumentator.instrument(app).expose(app)
+
+
+# CORS MIDDLEWARE
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # only for local development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ROUTES
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -38,9 +51,9 @@ def health():
 def create_item(item: ItemCreate):
     return crud.create_item(item.model_dump())
 
+
 @app.get("/items", response_model=List[ItemRead])
 def list_items(purchased: Optional[str] = None):
-    # print("DEBUG: list_items was executed with raw value:", purchased)
     if purchased is not None:
         purchased = purchased.lower() in ("true", "1", "yes", "y")
     return crud.list_items(purchased)
@@ -53,9 +66,9 @@ def read_item(item_id: int):
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
+
 @app.patch("/items/{item_id}", response_model=ItemRead)
 def patch_item(item_id: int, patch: ItemUpdate):
-    # Basic guard: at least one field provided
     if patch.model_dump(exclude_unset=True) == {}:
         raise HTTPException(status_code=422, detail="No fields to update")
     item = crud.update_item(item_id, patch.model_dump(exclude_unset=True))
@@ -63,12 +76,14 @@ def patch_item(item_id: int, patch: ItemUpdate):
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
+
 @app.patch("/items/{item_id}/toggle", response_model=ItemRead, status_code=200)
 def toggle_item(item_id: int):
     item = crud.toggle_item(item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
+
 
 @app.delete("/items/{item_id}", status_code=204)
 def delete_item(item_id: int):
