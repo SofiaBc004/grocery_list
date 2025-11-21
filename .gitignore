@@ -213,3 +213,10 @@ venv/
 grocery.db
 *.db
 *.sqlite
+
+
+.venv/
+venv/
+
+coverage.xml
+htmlcov/

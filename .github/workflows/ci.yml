@@ -25,10 +25,19 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage enforcement
         run: |
-          pytest --cov=app --cov-report=xml --cov-report=term --cov-fail-under=70
+          pytest --cov=app \
+                 --cov-report=xml \
+                 --cov-report=term \
+                 --cov-fail-under=70
 
-      - name: Sanity build (compile)
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Sanity build (compile Python files)
         run: |
           python -m compileall app
