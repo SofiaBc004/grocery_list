@@ -6,6 +6,8 @@ from .models import ItemCreate, ItemUpdate, ItemRead
 from . import crud
 from contextlib import asynccontextmanager
 from prometheus_fastapi_instrumentator import Instrumentator
+from pathlib import Path
+from fastapi.responses import FileResponse
 
 
 # LIFESPAN - only for initializing the database
@@ -20,6 +22,16 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    """Serve the single-page grocery list frontend."""
+    index_path = FRONTEND_DIR / "index.html"
+    return FileResponse(index_path)
+
 
 # PROMETHEUS INSTRUMENTATION 
 instrumentator = Instrumentator(
