@@ -10,12 +10,24 @@ It allows users to manage their grocery list through a RESTful API, supporting o
 - Mark items as purchased
 - Delete items
 
-This project was developed as part of the DevOps Pipeline Design assignment, following the Software Development Life Cycle (SDLC) approach.
+This project was developed as part of the DevOps Pipeline Design assignment, following the Software Development Life Cycle (SDLC) approach. It includes a fully automated CI/CD DevOps pipeline with monitoring and cloud deployment.
+
+
+🌐 Live Application
+
+Azure Web App:
+``` 
+https://sofia-grocerylist-hyccc2e2a5c0e7fb.spaincentral-01.azurewebsites.net/
+``` 
 
 ## Tech Stack ##
 
 - **Backend:** Python (FastAPI)
 - **Database:** SQLite
+   The application uses a SQLite database stored inside the Docker container.
+
+   On Azure Web App, container storage is ephemeral, meaning the database resets when the container restarts or redeploys.
+   For production, Azure SQL or a persistent volume would be required.
 - **Frontend:** HTML + JavaScript 
 - **Testing:** Pytest + pytest-cov
 - **CI:** GitHub Actions
@@ -81,6 +93,41 @@ Find the workflow in:
 .github/workflows/ci.yml
 
 
+## Cloud Deployment (CD) — Azure Web App ##
+This project includes a full Continuous Deployment pipeline using GitHub Actions and Azure Web App for Containers.
+
+
+Deployment Workflow
+
+
+On every push to the main branch:
+1. Tests + coverage are executed.
+2. A Docker image of the application is built.
+3. The image is pushed to Docker Hub:
+``` 
+sofiabc004/grocery-app:latest
+``` 
+4. Azure Web App automatically pulls the updated image.
+5. The container is started on port 80.
+
+Azure Configuration
+- Hosting: Azure Web App for Containers
+- Registry: Docker Hub
+- Image: ``` sofiabc004/grocery-app:latest ``` 
+- Port: 80
+- Frontend: served directly by FastAPI from ``` /frontend/index.html ``` 
+
+Secrets Used
+```
+- DOCKERHUB_USERNAME
+- DOCKERHUB_TOKEN
+- AZURE_CREDENTIALS 
+``` 
+
+Workflow File
+``` .github/workflows/azure-cd.yml ```
+
+
 ## 📈 Monitoring (Prometheus + Grafana) ##
 The app exposes two monitoring endpoints:
 - /health → basic application status
@@ -122,24 +169,35 @@ Check target status: Status → Target Health
 
 
 ## Frontend Instructions ##
-The project also includes a simple frontend (HTML + JavaScript) that allows users to interact with the grocery list visually.
-1. Start the backend (see setup instructions above).
-2. Serve the frontend:
-   - Option A: In VS Code, right-click `frontend/index.html` → **Open with Live Server** (extension needed).
-   - Option B: Run a simple Python server:
-     ```
-     cd frontend
-     python3 -m http.server 5500
-     ```
-     Then open [http://127.0.0.1:5500/index.html](http://127.0.0.1:5500/index.html) in your browser.
+The project also includes a simple frontend (HTML + JavaScript) that allows users to interact with the grocery list visually. The frontend is served directly by the FastAPI backend inside the Docker container.
+▶  Local Development
 
-3. Features in the frontend:
+1. Start the backend:
+   ```
+   uvicorn app.main:app --reload
+   ```
+
+2. Open your browser and go to:
+     ```
+     http://127.0.0.1:8000/   
+     ```
+
+▶  Deployed Version (Azure)
+
+The frontend is available at the root URL of the deployed container:
+
+     ```
+     https://sofia-grocerylist-hyccc2e2a5c0e7fb.spaincentral-01.azurewebsites.net/ 
+     ```
+
+▶  Features in the frontend:
    - Add grocery items
    - Delete grocery items
    - Mark/unmark items as purchased
    - Items grouped by category (e.g., fruit, dairy, vegetables)
    - Search by name or ID
 
+The frontend automatically uses the correct backend URL through window.location.origin, ensuring it works both locally and on Azure.
 
 ## Project Structure ##
 ```
@@ -151,14 +209,26 @@ grocery_list/
 │   ├── crud.py        # Database operations (CRUD)
 │   ├── db.py          # SQLite connection and table setup
 │
-│── frontend/          # HTML + JS frontend interface
-│── docs/              # SDLC documentation (planning, requirements, design)
-│── grocery.db         # SQLite database (auto-created, ignored in .gitignore)
+│── frontend/
+│   ├── index.html     # HTML + JavaScript frontend UI
+│── tests/             # Unit + integration tests
+│
+│── docs/              # SDLC documents (planning, requirements, design)
+│
+│── .github/
+│ └── workflows/
+│     ├── ci.yml           # Runs tests + coverage on every push/PR
+│     ├── azure-cd.yml     # Builds & deploys Docker image to Azure
+│     └── deploy.yml       # (Previous workflow, kept for reference)
+│
+│── docker-compose.yml # Prometheus + Grafana monitoring stack
+│── prometheus.yml     # Prometheus scrape configuration
+│── Dockerfile         # Container definition for FastAPI app
 │── requirements.txt   # Python dependencies
-│── tests/               # Unit + integration tests
-│── docker-compose.yml   # Prometheus + Grafana
-│── prometheus.yml       # Prometheus scrape config
-│── README.md
+│── .gitignore         # Ignored files (venv, sqlite DB, etc.)
+│── README.md          # Project documentation
+│── coverage.xml       # Test coverage report (generated)
+│── grocery.db         # SQLite DB (created at runtime; non-persistent)
 ```
 ## API Endpoints ##
 
@@ -174,9 +244,9 @@ grocery_list/
 | GET    | `/metrics`           | Prometheus metrics       |
 
 ## Future Improvements ##
-- Add user authentication
-- Containerize with Docker for DevOps pipeline integration
-- Deploy to cloud (Azure, AWS)
+- Add authentication & user accounts
+- Switch from SQLite to a persistent Azure SQL database
+- Add error alerts, validation, and loading states
 
 ## Author ##
 Sofia Boicenco
