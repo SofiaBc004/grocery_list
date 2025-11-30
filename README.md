@@ -227,6 +227,7 @@ grocery_list/
 │── requirements.txt   # Python dependencies
 │── .gitignore         # Ignored files (venv, sqlite DB, etc.)
 │── README.md          # Project documentation
+│── REPORT.md          # md version of report
 │── coverage.xml       # Test coverage report (generated)
 │── grocery.db         # SQLite DB (created at runtime; non-persistent)
 ```

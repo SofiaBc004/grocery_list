@@ -4,6 +4,11 @@ The Grocery List Application was extended by introducing a complete DevOps pipel
 
 To achieve this, the codebase was cleaned and reorganized, automated tests were added, and the entire application was packaged into a Docker container. A continuous deployment pipeline was then set up using GitHub Actions, which builds the container on every update, pushes it to Docker Hub, and automatically deploys it to Azure Web App for Containers. Monitoring tools such as Prometheus and Grafana were also introduced to track performance and system health.
 
+
+Live deployment:
+```
+https://sofia-grocerylist-hyccc2e2a5c0e7fb.spaincentral-01.azurewebsites.net
+```
 ---
 
 # 2. Code Quality Improvements & Refactoring
